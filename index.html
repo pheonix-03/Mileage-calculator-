@@ -1,0 +1,337 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mileage → Cost Calculator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root { --card-max: 960px; }
+    body { background: #0b1220; color: #e6eaf2; }
+    .navbar { background: linear-gradient(90deg, #0e1730, #151e38); }
+    .card { background: #11182b; border: 1px solid #1b2748; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .form-control, .form-select { background:#0e1630; color:#e6eaf2; border-color:#243154; }
+    .form-control:focus, .form-select:focus { box-shadow: 0 0 0 .2rem rgba(99,102,241,.35); border-color:#6366f1; }
+    .input-group-text { background:#0d1530; color:#b9c3e1; border-color:#243154; }
+    .link-muted { color:#9db0de; }
+    .muted { color:#8ea0c8; }
+    .unit-toggle .btn { border-color:#243154; color:#cdd7f4; }
+    .unit-toggle .btn.active { background:#2a3460; color:#fff; }
+    .result-badge { font-size: .9rem; }
+    .heading { letter-spacing:.3px; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-dark">
+  <div class="container py-2">
+    <span class="navbar-brand fw-semibold">⛽ Mileage → Cost Calculator</span>
+    <div class="d-flex gap-2">
+      <button id="resetBtn" class="btn btn-outline-light btn-sm">Reset</button>
+    </div>
+  </div>
+</nav><main class="container my-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10 col-xxl-8">
+      <div class="card p-3 p-md-4">
+        <h1 class="h4 heading mb-3">Plan a trip and estimate total fuel cost</h1><form id="calcForm" class="row g-3">
+      <!-- Distance -->
+      <div class="col-12 col-md-6">
+        <label class="form-label">Distance</label>
+        <div class="input-group">
+          <input type="number" inputmode="decimal" step="0.1" min="0" class="form-control" id="distance" placeholder="e.g., 120" required>
+          <span class="input-group-text">km</span>
+        </div>
+        <div class="form-text muted">For round trip, toggle below or just double the distance.</div>
+      </div>
+
+      <!-- Round Trip -->
+      <div class="col-6 col-md-3 d-flex align-items-end">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="roundTrip">
+          <label class="form-check-label" for="roundTrip">Round trip</label>
+        </div>
+      </div>
+
+      <!-- Passengers -->
+      <div class="col-6 col-md-3">
+        <label class="form-label">Passengers splitting</label>
+        <div class="input-group">
+          <span class="input-group-text">👤</span>
+          <input type="number" min="1" step="1" class="form-control" id="passengers" value="1">
+        </div>
+      </div>
+
+      <!-- Efficiency Unit Toggle -->
+      <div class="col-12">
+        <label class="form-label mb-1">Efficiency unit</label>
+        <div class="btn-group unit-toggle" role="group" aria-label="Unit toggle">
+          <input type="radio" class="btn-check" name="effUnit" id="unitKmpl" autocomplete="off" checked>
+          <label class="btn btn-sm btn-outline-light" for="unitKmpl">km / litre</label>
+
+          <input type="radio" class="btn-check" name="effUnit" id="unitL100">
+          <label class="btn btn-sm btn-outline-light" for="unitL100">litres / 100 km</label>
+        </div>
+      </div>
+
+      <!-- Mileage (km/l) -->
+      <div class="col-12 col-md-6" id="kmplWrap">
+        <label class="form-label">Mileage</label>
+        <div class="input-group">
+          <input type="number" inputmode="decimal" step="0.1" min="0.1" class="form-control" id="mileageKmpl" placeholder="e.g., 18">
+          <span class="input-group-text">km/l</span>
+        </div>
+      </div>
+
+      <!-- Mileage (L/100km) -->
+      <div class="col-12 col-md-6 d-none" id="l100Wrap">
+        <label class="form-label">Mileage</label>
+        <div class="input-group">
+          <input type="number" inputmode="decimal" step="0.1" min="0.1" class="form-control" id="mileageL100" placeholder="e.g., 6.5">
+          <span class="input-group-text">L / 100 km</span>
+        </div>
+      </div>
+
+      <!-- Fuel Price -->
+      <div class="col-12 col-md-6">
+        <label class="form-label">Fuel price</label>
+        <div class="input-group">
+          <span class="input-group-text">₹</span>
+          <input type="number" inputmode="decimal" step="0.1" min="0" class="form-control" id="fuelPrice" placeholder="e.g., 105">
+          <span class="input-group-text">/ litre</span>
+        </div>
+      </div>
+
+      <!-- Optional costs -->
+      <div class="col-12">
+        <details>
+          <summary class="mb-2">Optional costs (tolls, parking, other)</summary>
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Tolls</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" step="0.1" min="0" class="form-control" id="tolls" value="0">
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Parking</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" step="0.1" min="0" class="form-control" id="parking" value="0">
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Other</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" step="0.1" min="0" class="form-control" id="other" value="0">
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="col-12 d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary">Calculate</button>
+        <button type="button" id="shareBtn" class="btn btn-outline-secondary">Share settings</button>
+      </div>
+    </form>
+
+    <hr class="my-4">
+
+    <div id="results" class="row g-3 d-none">
+      <div class="col-12 col-xl-6">
+        <div class="p-3 rounded border" style="border-color:#243154 !important;">
+          <h2 class="h5 mb-3">Fuel summary</h2>
+          <div class="d-flex justify-content-between"><span>Effective distance</span><span id="outDistance" class="fw-semibold"></span></div>
+          <div class="d-flex justify-content-between"><span>Mileage used</span><span id="outMileage" class="fw-semibold"></span></div>
+          <div class="d-flex justify-content-between"><span>Fuel required</span><span id="outLitres" class="fw-semibold"></span></div>
+          <div class="d-flex justify-content-between"><span>Fuel cost</span><span id="outFuelCost" class="fw-semibold"></span></div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-6">
+        <div class="p-3 rounded border" style="border-color:#243154 !important;">
+          <h2 class="h5 mb-3">Totals</h2>
+          <div class="d-flex justify-content-between"><span>Extra costs</span><span id="outExtras" class="fw-semibold"></span></div>
+          <div class="d-flex justify-content-between"><span>Total trip cost</span><span id="outTotal" class="fw-bold fs-5"></span></div>
+          <hr>
+          <div class="d-flex justify-content-between"><span>Cost / km</span><span id="outPerKm" class="fw-semibold result-badge"></span></div>
+          <div class="d-flex justify-content-between"><span>Cost / person</span><span id="outPerPerson" class="fw-semibold result-badge"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-3 small link-muted">Tip: Values are remembered on this device. Share button copies a URL with your inputs.</p>
+  </div>
+
+  <div class="text-center mt-3">
+    <a class="link-muted small" href="https://getbootstrap.com/docs/5.3/getting-started/introduction/" target="_blank" rel="noopener">Built with Bootstrap 5</a>
+  </div>
+</div>
+
+  </div>
+</main><script>
+  const el = id => document.getElementById(id);
+
+  const STATE_KEYS = [
+    'distance','roundTrip','passengers','mileageKmpl','mileageL100','fuelPrice','tolls','parking','other','unit'
+  ];
+
+  // Load from localStorage or URL params
+  function loadState() {
+    const params = new URLSearchParams(location.search);
+    const s = {};
+    STATE_KEYS.forEach(k => {
+      if (params.has(k)) {
+        s[k] = params.get(k);
+      } else {
+        const v = localStorage.getItem(k);
+        if (v !== null) s[k] = v;
+      }
+    });
+    if (s.unit === 'l100') {
+      el('unitL100').checked = true;
+      toggleUnit();
+    }
+    if (s.distance) el('distance').value = s.distance;
+    if (s.roundTrip) el('roundTrip').checked = s.roundTrip === 'true';
+    if (s.passengers) el('passengers').value = +s.passengers || 1;
+    if (s.mileageKmpl) el('mileageKmpl').value = s.mileageKmpl;
+    if (s.mileageL100) el('mileageL100').value = s.mileageL100;
+    if (s.fuelPrice) el('fuelPrice').value = s.fuelPrice;
+    if (s.tolls) el('tolls').value = s.tolls;
+    if (s.parking) el('parking').value = s.parking;
+    if (s.other) el('other').value = s.other;
+  }
+
+  function saveState() {
+    const unit = el('unitL100').checked ? 'l100' : 'kmpl';
+    const obj = {
+      distance: el('distance').value,
+      roundTrip: el('roundTrip').checked,
+      passengers: el('passengers').value,
+      mileageKmpl: el('mileageKmpl').value,
+      mileageL100: el('mileageL100').value,
+      fuelPrice: el('fuelPrice').value,
+      tolls: el('tolls').value,
+      parking: el('parking').value,
+      other: el('other').value,
+      unit
+    };
+    Object.entries(obj).forEach(([k,v]) => localStorage.setItem(k, String(v)));
+  }
+
+  function toggleUnit() {
+    const isL100 = el('unitL100').checked;
+    el('kmplWrap').classList.toggle('d-none', isL100);
+    el('l100Wrap').classList.toggle('d-none', !isL100);
+  }
+
+  function kmplFromInputs() {
+    if (el('unitL100').checked) {
+      const l100 = parseFloat(el('mileageL100').value);
+      if (l100 > 0) return 100 / l100; // convert L/100km → km/l
+      return NaN;
+    } else {
+      return parseFloat(el('mileageKmpl').value);
+    }
+  }
+
+  function formatINR(n) {
+    try { return new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits: 2 }).format(n); }
+    catch { return '₹' + (Math.round(n*100)/100).toLocaleString('en-IN'); }
+  }
+
+  function round(v, d=2) {
+    const p = Math.pow(10,d);
+    return Math.round((v + Number.EPSILON) * p)/p;
+  }
+
+  function calculate(e) {
+    e && e.preventDefault();
+
+    const distanceKm = parseFloat(el('distance').value);
+    const roundTrip = el('roundTrip').checked;
+    const passengers = Math.max(1, parseInt(el('passengers').value || '1', 10));
+    const kmpl = kmplFromInputs();
+    const fuelPrice = parseFloat(el('fuelPrice').value);
+
+    const tolls = parseFloat(el('tolls').value || '0');
+    const parking = parseFloat(el('parking').value || '0');
+    const other = parseFloat(el('other').value || '0');
+
+    if (!(distanceKm > 0 && kmpl > 0 && fuelPrice >= 0)) {
+      alert('Please enter: Distance > 0, Mileage > 0, Fuel price ≥ 0.');
+      return;
+    }
+
+    const effDistance = roundTrip ? distanceKm * 2 : distanceKm;
+    const litres = effDistance / kmpl;
+    const fuelCost = litres * fuelPrice;
+    const extras = tolls + parking + other;
+    const total = fuelCost + extras;
+
+    el('outDistance').textContent = `${round(effDistance,2)} km`;
+    const unitLabel = el('unitL100').checked ? `${round(100/kmpl,2)} L/100km` : `${round(kmpl,2)} km/l`;
+    el('outMileage').textContent = unitLabel;
+    el('outLitres').textContent = `${round(litres,2)} L`;
+    el('outFuelCost').textContent = formatINR(fuelCost);
+
+    el('outExtras').textContent = formatINR(extras);
+    el('outTotal').textContent = formatINR(total);
+
+    const perKm = total / effDistance;
+    const perPerson = total / passengers;
+    el('outPerKm').textContent = formatINR(perKm) + ' / km';
+    el('outPerPerson').textContent = formatINR(perPerson) + ' / person';
+
+    el('results').classList.remove('d-none');
+
+    saveState();
+  }
+
+  function shareSettings() {
+    const unit = el('unitL100').checked ? 'l100' : 'kmpl';
+    const params = new URLSearchParams({
+      distance: el('distance').value,
+      roundTrip: String(el('roundTrip').checked),
+      passengers: el('passengers').value,
+      mileageKmpl: el('mileageKmpl').value,
+      mileageL100: el('mileageL100').value,
+      fuelPrice: el('fuelPrice').value,
+      tolls: el('tolls').value,
+      parking: el('parking').value,
+      other: el('other').value,
+      unit
+    });
+    const url = `${location.origin}${location.pathname}?${params.toString()}`;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('Sharable link copied to clipboard!');
+    }).catch(() => {
+      prompt('Copy this URL:', url);
+    });
+  }
+
+  function resetAll() {
+    document.getElementById('calcForm').reset();
+    el('unitKmpl').checked = true; toggleUnit();
+    el('tolls').value = 0; el('parking').value = 0; el('other').value = 0;
+    el('passengers').value = 1;
+    el('results').classList.add('d-none');
+    STATE_KEYS.forEach(k => localStorage.removeItem(k));
+    history.replaceState({}, '', location.pathname);
+  }
+
+  // Hookups
+  document.getElementById('calcForm').addEventListener('submit', calculate);
+  document.getElementById('shareBtn').addEventListener('click', shareSettings);
+  document.getElementById('resetBtn').addEventListener('click', resetAll);
+  document.getElementById('unitKmpl').addEventListener('change', () => { toggleUnit(); });
+  document.getElementById('unitL100').addEventListener('change', () => { toggleUnit(); });
+
+  // Boot
+  loadState();
+  toggleUnit();
+</script><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script></body>
+</html>
